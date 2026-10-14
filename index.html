@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Шахматы</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700&family=Unbounded:wght@600;700&display=swap" rel="stylesheet">
+<style>
+:root{color-scheme:light dark;--bg:#e9e6f2;--fg:#1f1a33;--muted:#6a6385;--card:#fff;--line:#d9d3ea;--lt:#e7e0f3;--dk:#7d68ae;--accent:#3b2d6b;--on-accent:#fff;--pink:#ff7eb6;--teal:#0f8f80;--coral:#e03a4f;
+--sel:rgba(255,126,182,.8);--last:rgba(255,126,182,.4);--mv:rgba(34,184,214,.9);--chk:rgba(255,60,40,.9);
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#15121f;--fg:#ece8f8;--muted:#a59dc4;--card:#211d33;--line:#382f55;--lt:#b9afd6;--dk:#6c59a0;--accent:#b9a6ff;--on-accent:#15121f}}
+:root[data-theme="dark"]{color-scheme:dark;--bg:#15121f;--fg:#ece8f8;--muted:#a59dc4;--card:#211d33;--line:#382f55;--lt:#b9afd6;--dk:#6c59a0;--accent:#b9a6ff;--on-accent:#15121f}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:Manrope,system-ui,"Segoe UI",sans-serif;padding:18px 12px 28px;display:flex;flex-direction:column;align-items:center;gap:14px}
+h1{font:700 1.45rem Unbounded,Georgia,serif;letter-spacing:.01em;margin:0}
+#turn{display:flex;align-items:center;gap:10px;font-weight:700;font-size:1.05rem;min-height:1.6em;background:var(--card);padding:8px 20px;border-radius:999px;box-shadow:0 1px 0 var(--line)}
+.dot{width:14px;height:14px;border-radius:50%;border:2px solid var(--fg)}
+.dot.w{background:#fff}.dot.b{background:#1f1a33}
+#msg{min-height:1.2em;font-size:.92rem;color:var(--muted);text-align:center}
+#clocks{display:flex;gap:12px;flex-wrap:wrap;justify-content:center}
+.clk{display:flex;align-items:center;justify-content:center;gap:8px;min-width:7.5em;padding:8px 14px;border-radius:12px;background:var(--card);border:2px solid transparent;font-weight:700;font-size:1.35rem;font-variant-numeric:tabular-nums}
+.clk.act{border-color:var(--pink);box-shadow:0 0 0 4px rgba(255,126,182,.3)}
+.clk.low{color:var(--coral)}
+.wrap{display:flex;flex-wrap:wrap;gap:22px;justify-content:center;align-items:flex-start;max-width:100%}
+#board{--s:min(calc(100vw - 56px),480px);width:var(--s);height:var(--s);display:grid;grid-template-columns:repeat(8,1fr);border-radius:12px;overflow:hidden;box-shadow:0 12px 30px -14px rgba(31,26,51,.55),0 0 0 8px var(--card);margin:8px}
+.sq{position:relative;display:grid;place-items:center;font-size:calc(var(--s)/8*.78);line-height:1;cursor:pointer;user-select:none;-webkit-user-select:none}
+.sq.l{background:var(--lt)}.sq.d{background:var(--dk)}
+.sq>span{filter:drop-shadow(0 2px 1.5px rgba(31,26,51,.35))}
+.sq.last{box-shadow:inset 0 0 0 100px var(--last)}
+.sq.sel{box-shadow:inset 0 0 0 100px var(--sel)}
+.sq.chk{box-shadow:inset 0 0 14px 5px var(--chk),inset 0 0 0 100px rgba(255,60,40,.38)}
+.sq.mv::after{content:"";width:28%;height:28%;border-radius:50%;background:var(--mv);position:absolute}
+.sq.cap{box-shadow:inset 0 0 0 4px var(--mv)}
+.sq.tgt{box-shadow:inset 0 0 0 4px var(--pink)}
+.sq.frz{background-image:linear-gradient(rgba(90,180,255,.45),rgba(90,180,255,.45))}
+.sq.fog{background-image:repeating-linear-gradient(45deg,rgba(20,15,40,.58) 0 7px,rgba(20,15,40,.68) 7px 14px)}
+.sq.hole{background:#0b0f14;box-shadow:inset 0 0 14px 5px #000;cursor:default}
+@keyframes crumble{0%{transform:none;opacity:1}20%{transform:translateX(-2px) rotate(-2deg)}40%{transform:translateX(2px) rotate(2deg)}100%{transform:scale(.15) rotate(25deg);opacity:0}}
+.sq.hole.drop::after{content:"";position:absolute;inset:0;background:var(--dk);animation:crumble .9s cubic-bezier(.5,0,1,.6) forwards;pointer-events:none}
+@media (prefers-reduced-motion:reduce){.sq.hole.drop::after{display:none}}
+.w{color:#fff;text-shadow:0 0 1px #1f1a33,0 0 2px #1f1a33,0 0 3px #1f1a33}
+.b{color:#1f1a33;text-shadow:0 0 1px rgba(255,255,255,.55),0 0 2px rgba(255,255,255,.25)}
+.rk,.fl{position:absolute;font:700 .68rem Manrope,system-ui,sans-serif;font-style:normal;opacity:.95}
+.sq.l .rk,.sq.l .fl{color:var(--dk)}.sq.d .rk,.sq.d .fl{color:var(--lt)}
+.rk{top:2px;left:3px}.fl{bottom:1px;right:3px}
+.tag{position:absolute;top:1px;right:3px;font-size:.8rem;line-height:1;font-style:normal}
+.side{width:min(100%,280px);background:var(--card);border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:14px;box-shadow:0 1px 0 var(--line)}
+.btns{display:flex;gap:8px;flex-wrap:wrap}
+.btns button{flex:1 1 40%}.btns #new{flex:1 1 100%}
+.grp{display:flex;flex-direction:column;gap:10px;padding-top:14px;border-top:1px solid var(--line)}
+.grp h3,#abt{margin:0;font-size:.88rem;font-weight:700;color:var(--muted)}
+.opt{display:flex;flex-direction:column;gap:4px;font-size:.85rem;color:var(--muted);cursor:pointer}
+.opt.chk{flex-direction:row;align-items:center;gap:8px;color:var(--fg);font-size:.95rem;font-weight:600}
+.opt input{accent-color:var(--accent);width:18px;height:18px;margin:0}
+.opt select{width:100%;font:600 .92rem Manrope,system-ui,sans-serif;padding:8px 10px;background:var(--bg);color:var(--fg);border:1.5px solid var(--line);border-radius:10px}
+#abs{display:flex;flex-direction:column;gap:6px}
+#hist{background:var(--bg);border-radius:10px;padding:8px 12px;height:220px;max-height:36vh;overflow:auto;font-size:.9rem;line-height:1.7;font-variant-numeric:tabular-nums}
+#hist span{display:inline-block;width:2em;opacity:.55}
+#hist em{color:var(--muted);font-style:normal}
+button{font:600 .95rem Manrope,system-ui,sans-serif;padding:9px 14px;border:1.5px solid var(--line);background:var(--card);color:var(--fg);cursor:pointer;border-radius:10px;transition:background .15s,border-color .15s}
+button:hover{background:var(--bg);border-color:var(--accent)}
+#new{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+#new:hover{background:var(--accent);filter:brightness(1.15)}
+button.on{background:var(--pink);color:#1f1a33;border-color:var(--pink)}
+button:disabled{opacity:.4;cursor:default}
+button:disabled:hover{background:var(--card);border-color:var(--line)}
+button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid var(--pink);outline-offset:2px}
+#promo,#pass,#rules{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)}
+#promo{background:rgba(21,18,31,.55);z-index:5}
+#promo div{background:var(--card);padding:18px;border-radius:16px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:center;font-weight:600}
+#promo button{font-size:2.4rem;line-height:1;padding:6px 12px}
+#pass{background:var(--bg);z-index:6;text-align:center}
+#pass div{display:flex;flex-direction:column;gap:18px;align-items:center;padding:20px;font-size:1.4rem;font-weight:700}
+#rules{background:rgba(21,18,31,.55);z-index:7;padding:12px}
+#rules>div{background:var(--card);max-width:520px;max-height:85vh;overflow:auto;padding:20px;border-radius:16px;font-size:.95rem;line-height:1.55}
+#rules h2{margin:0 0 10px;font:700 1.15rem Unbounded,Georgia,serif}
+#rules p{margin:0 0 10px}
+#menu,#game{width:100%;max-width:900px;display:flex;flex-direction:column;align-items:center;gap:14px}
+#menu{max-width:560px}
+h1.big{font-size:2.2rem;margin-top:10px}
+.lead{margin:-6px 0 4px;color:var(--muted);text-align:center}
+.mcard{width:100%;box-sizing:border-box;background:var(--card);border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:12px;box-shadow:0 1px 0 var(--line)}
+.mcard h2{margin:0;font-size:.95rem;font-weight:700;color:var(--muted)}
+.fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+.modes{display:flex;flex-direction:column;gap:10px}
+.mode{border:2px solid var(--line);border-radius:14px;overflow:hidden;transition:border-color .15s,background .15s}
+.mode.on{border-color:var(--accent);background:var(--bg)}
+.mode:focus-within{outline:3px solid var(--pink);outline-offset:2px}
+.tog{display:flex;align-items:center;gap:12px;padding:12px 14px;cursor:pointer}
+.tog input{position:absolute;opacity:0;width:0;height:0}
+.tog .ico{font-size:1.4rem;min-width:2.4rem;text-align:center}
+.tog b{display:block;font-size:1rem}
+.tog small{display:block;color:var(--muted);font-size:.85rem;font-weight:500}
+.tog .sw{margin-left:auto;width:42px;height:24px;border-radius:999px;background:var(--line);position:relative;transition:background .15s;flex:none}
+.tog .sw::after{content:"";position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;transition:transform .15s}
+.mode.on .sw{background:var(--accent)}
+.mode.on .sw::after{transform:translateX(18px)}
+.more{padding:0 14px 14px}
+.mactions{display:flex;flex-direction:column;gap:10px;width:100%}
+#startBtn{padding:16px;font:700 1.1rem Unbounded,Manrope,sans-serif;background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+#startBtn:hover{background:var(--accent);filter:brightness(1.15)}
+.play{display:flex;flex-wrap:wrap;gap:22px;justify-content:center;align-items:flex-start;max-width:100%}
+.boardcol{display:flex;flex-direction:column;align-items:center;gap:12px}
+.abar{display:flex;align-items:center;gap:12px}
+#abs{display:flex;flex-direction:row;gap:8px}
+#abs button{width:46px;height:46px;font-size:1.3rem;padding:0;border-radius:12px}
+.side h3{margin:0;font-size:.88rem;font-weight:700;color:var(--muted)}
+#hist{height:340px;max-height:none}
+@media (max-width:820px){.side{width:min(100%,480px)}#hist{height:170px}}
+</style>
+</head>
+<body>
+<section id="menu">
+  <h1 class="big">Шахматы</h1>
+  <p class="lead">Классика с добавками: включайте только то, что нравится.</p>
+  <div class="mcard">
+    <h2>Партия</h2>
+    <div class="fields">
+      <label class="opt">Игра <select id="optBot"><option value="0" selected>Двое на одном экране</option><option value="1">Бот: лёгкий</option><option value="2">Бот: средний</option><option value="3">Бот: сильный</option></select></label>
+      <label class="opt">Вы играете <select id="optSide"><option value="w">белыми</option><option value="b">чёрными</option></select></label>
+      <label class="opt">Таймер <select id="optTime"><option value="0" selected>Без таймера</option><option value="180">3 минуты</option><option value="300">5 минут</option><option value="600">10 минут</option></select></label>
+    </div>
+  </div>
+  <div class="mcard">
+    <h2>Режимы</h2>
+    <div class="modes">
+      <div class="mode"><label class="tog"><input type="checkbox" id="optAb" checked><span class="ico">❄🛡</span><span><b>Способности</b><small>Заморозка, щит и воскрешение: по одной за партию</small></span><span class="sw"></span></label></div>
+      <div class="mode"><label class="tog"><input type="checkbox" id="optFall"><span class="ico">🕳️</span><span><b>Падающие клетки</b><small>Пустые клетки в центре падают и становятся стенами</small></span><span class="sw"></span></label>
+        <div class="more" hidden><label class="opt">Как часто падает клетка <select id="optRate"><option value="6">Часто (раз в 6 ходов)</option><option value="10" selected>Средне (раз в 10)</option><option value="16">Редко (раз в 16)</option></select></label></div></div>
+      <div class="mode"><label class="tog"><input type="checkbox" id="optFog"><span class="ico">🌫️</span><span><b>Туман войны</b><small>Видно только то, что видят ваши фигуры</small></span><span class="sw"></span></label></div>
+    </div>
+  </div>
+  <div class="mactions">
+    <button id="startBtn">Начать игру</button>
+    <button id="contBtn" hidden>Продолжить партию</button>
+    <button class="rules-open">Правила</button>
+  </div>
+</section>
+<section id="game" hidden>
+  <h1>Шахматы</h1>
+  <div id="turn"></div>
+  <div id="clocks" hidden><div class="clk" id="cw"></div><div class="clk" id="cb"></div></div>
+  <div class="play">
+    <div class="boardcol">
+      <div id="board" role="grid" aria-label="Шахматная доска"></div>
+      <div class="abar" id="abar"><span class="dot w" id="abwho"></span><div id="abs"></div></div>
+      <div id="msg"></div>
+    </div>
+    <aside class="side">
+      <div class="btns">
+        <button id="restart">Заново</button>
+        <button id="undo">Отменить</button>
+        <button id="menuBtn">Меню</button>
+        <button class="rules-open">Правила</button>
+      </div>
+      <h3>История ходов</h3>
+      <div id="hist" aria-label="История ходов"></div>
+    </aside>
+  </div>
+</section>
+<div id="rules" hidden><div>
+<h2>Правила</h2>
+<p><b>Шахматы.</b> Все обычные правила: рокировка, взятие на проходе, превращение пешки, шах, мат и пат. Ничья также при недостатке материала, троекратном повторении позиции и 50 ходах без взятий и ходов пешками.</p>
+<p><b>Способности</b> (режим, включается на начальной странице; каждая один раз за партию; используются до хода и не заменяют его). ❄ Заморозка: чужая фигура (кроме короля) не может ходить два своих хода, но продолжает бить. 🛡 Щит: ваша фигура (кроме короля) переживёт первое взятие: щит сгорает, фигуры остаются на местах. ✚ Воскрешение: вернуть свою съеденную фигуру (кроме ферзя) на свободную стартовую клетку.</p>
+<p><b>Падающие клетки.</b> Раз в несколько ходов пустая клетка в центре падает и становится стеной. Пешка может перепрыгнуть упавшую клетку прямо перед собой.</p>
+<p><b>Туман войны.</b> Видны только ваши фигуры и клетки, куда они ходят или что бьют. В игре вдвоём между ходами появляется экран передачи.</p>
+<p><b>Таймер и бот.</b> Часы запускаются после первого хода белых. Против бота можно выбрать цвет. Лёгкий бот способности не использует, средний и сильный используют.</p>
+<button data-close="1">Закрыть</button>
+</div></div>
+<div id="pass" hidden><div><span id="passtxt"></span><button id="passbtn">Показать доску</button></div></div>
+<div id="promo" hidden><div><span id="ptitle">Превращение в:</span><span id="pbtns"></span></div></div>
+<script>
+const G={K:'♚\uFE0E',Q:'♛\uFE0E',R:'♜\uFE0E',B:'♝\uFE0E',N:'♞\uFE0E',P:'♟\uFE0E'};
+const N=[[1,2],[2,1],[-1,2],[-2,1],[1,-2],[2,-1],[-1,-2],[-2,-1]];
+const D8=[[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]];
+const on=(r,c)=>r>=0&&r<8&&c>=0&&c<8;
+const sq=(r,c)=>'abcdefgh'[c]+(8-r);
+
+function newState(){
+  const b=Array.from({length:8},()=>Array(8).fill(null)),back='RNBQKBNR';
+  for(let c=0;c<8;c++){b[0][c]='b'+back[c];b[1][c]='bP';b[6][c]='wP';b[7][c]='w'+back[c];}
+  return{b,turn:'w',cast:{wK:1,wQ:1,bK:1,bQ:1},ep:null,hist:[],over:null,check:false,last:null,fall:false,every:FALL_EVERY,ply:0,hm:0,rep:{},pre:'',sh:Array.from({length:8},()=>Array(8).fill(false)),fz:Array.from({length:8},()=>Array(8).fill(0)),caps:{w:[],b:[]},used:{w:{freeze:0,shield:0,res:0},b:{freeze:0,shield:0,res:0}}};
+}
+
+// Бьёт ли цвет `by` клетку (r,c)
+function attacked(b,r,c,by){
+  const pd=by==='w'?1:-1;
+  for(const dc of[-1,1]){const x=r+pd,y=c+dc;if(on(x,y)&&b[x][y]===by+'P')return true}
+  for(const[dr,dc]of N){const x=r+dr,y=c+dc;if(on(x,y)&&b[x][y]===by+'N')return true}
+  for(const[dr,dc]of D8){
+    let x=r+dr,y=c+dc;
+    if(on(x,y)&&b[x][y]===by+'K')return true;
+    while(on(x,y)){
+      const p=b[x][y];
+      if(p){if(p[0]===by){const t=p[1];if(t==='Q'||(t==='R'&&(!dr||!dc))||(t==='B'&&dr&&dc))return true}break}
+      x+=dr;y+=dc;
+    }
+  }
+  return false;
+}
+function findK(b,col){for(let r=0;r<8;r++)for(let c=0;c<8;c++)if(b[r][c]===col+'K')return[r,c]}
+function inCheck(b,col){const[r,c]=findK(b,col);return attacked(b,r,c,col==='w'?'b':'w')}
+
+// Ходы фигуры без проверки "не оставил ли король под шахом"
+function moves(s,r,c){
+  const b=s.b,p=b[r][c],out=[];
+  if(!p||s.fz[r][c])return out;
+  const col=p[0],t=p[1],opp=col==='w'?'b':'w';
+  const add=(tr,tc,x={})=>out.push({fr:r,fc:c,tr,tc,...x});
+  if(t==='P'){
+    const d=col==='w'?-1:1,start=col==='w'?6:1,last=col==='w'?0:7;
+    const pr=tr=>tr===last?{promo:1}:{};
+    // Режим падающих клеток: пешка перепрыгивает упавшую клетку прямо перед собой
+    if(on(r+2*d,c)&&b[r+d][c]==='X'&&!b[r+2*d][c])add(r+2*d,c,pr(r+2*d));
+    if(on(r+d,c)&&!b[r+d][c]){
+      add(r+d,c,pr(r+d));
+      if(r===start&&!b[r+2*d][c])add(r+2*d,c,{dbl:1});
+    }
+    for(const dc of[-1,1]){
+      const x=r+d,y=c+dc;if(!on(x,y))continue;
+      if(b[x][y]&&b[x][y][0]===opp)add(x,y,pr(x));
+      else if(s.ep&&s.ep[0]===x&&s.ep[1]===y)add(x,y,{ep:1});
+    }
+  }else if(t==='N'||t==='K'){
+    for(const[dr,dc]of(t==='N'?N:D8)){
+      const x=r+dr,y=c+dc;
+      if(on(x,y)&&(!b[x][y]||b[x][y][0]===opp))add(x,y);
+    }
+    const row=col==='w'?7:0;
+    if(t==='K'&&r===row&&c===4&&!attacked(b,row,4,opp)){
+      if(s.cast[col+'K']&&!b[row][5]&&!b[row][6]&&b[row][7]===col+'R'&&!s.fz[row][7]&&!attacked(b,row,5,opp)&&!attacked(b,row,6,opp))add(row,6,{cas:'K'});
+      if(s.cast[col+'Q']&&!b[row][3]&&!b[row][2]&&!b[row][1]&&b[row][0]===col+'R'&&!s.fz[row][0]&&!attacked(b,row,3,opp)&&!attacked(b,row,2,opp))add(row,2,{cas:'Q'});
+    }
+  }else{
+    for(const[dr,dc]of D8){
+      if(t==='R'&&dr&&dc)continue;
+      if(t==='B'&&!(dr&&dc))continue;
+      let x=r+dr,y=c+dc;
+      while(on(x,y)){
+        if(!b[x][y])add(x,y);
+        else{if(b[x][y][0]===opp)add(x,y);break}
+        x+=dr;y+=dc;
+      }
+    }
+  }
+  return out;
+}
+
+// Уменьшить заморозку у фигур цвета col (после его хода)
+function decay(fz,b,col){for(let r=0;r<8;r++)for(let c=0;c<8;c++)if(fz[r][c]&&b[r][c]&&b[r][c][0]===col)fz[r][c]--;return fz}
+// ---------- Режим «Падающие клетки» ----------
+// Раз в FALL_EVERY ходов (считая ходы обоих игроков) одна пустая клетка в центре падает и становится стеной ('X').
+const FALL_EVERY=10;
+function drop(s){
+  const cand=[];
+  for(let r=2;r<=5;r++)for(let c=0;c<8;c++)
+    if(!s.b[r][c]&&!(s.ep&&s.ep[0]===r&&s.ep[1]===c))cand.push([r,c]);
+  for(let i=cand.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[cand[i],cand[j]]=[cand[j],cand[i]]}
+  const chk=inCheck(s.b,s.turn);
+  for(const[r,c]of cand){
+    s.b[r][c]='X';
+    // клетка не должна снимать шах и не должна оставлять игрока без ходов
+    if(inCheck(s.b,s.turn)===chk&&anyLegal(s))return[r,c];
+    s.b[r][c]=null;
+  }
+  return null;
+}
+// Выполнить ход, вернуть новое состояние
+function apply(s,m,promo='Q'){
+  const b=s.b.map(r=>r.slice()),p=b[m.fr][m.fc],col=p[0];
+  const cap=b[m.tr][m.tc]||(m.ep?b[m.fr][m.tc]:null),cr=m.ep?m.fr:m.tr,cc=m.tc;
+  const sh=s.sh.map(r=>r.slice()),fz=s.fz.map(r=>r.slice()),caps={w:[...s.caps.w],b:[...s.caps.b]};
+  if(cap&&sh[cr][cc]){ // щит: взятие не удалось, щит сгорел, фигура осталась на месте
+    sh[cr][cc]=false;
+    return{...s,b,turn:col==='w'?'b':'w',ep:null,over:null,check:false,last:null,cap:null,bounce:1,sh,fz:decay(fz,b,col),caps,pre:''};
+  }
+  if(cap){sh[cr][cc]=false;fz[cr][cc]=0;caps[cap[0]].push(cap[1])}
+  sh[m.tr][m.tc]=sh[m.fr][m.fc];sh[m.fr][m.fc]=false;
+  b[m.tr][m.tc]=m.promo?col+promo:p;
+  b[m.fr][m.fc]=null;
+  if(m.ep)b[m.fr][m.tc]=null;
+  if(m.cas){
+    if(m.cas==='K'){b[m.fr][5]=b[m.fr][7];b[m.fr][7]=null;sh[m.fr][5]=sh[m.fr][7];sh[m.fr][7]=false}
+    else{b[m.fr][3]=b[m.fr][0];b[m.fr][0]=null;sh[m.fr][3]=sh[m.fr][0];sh[m.fr][0]=false}
+  }
+  const cast={...s.cast};
+  if(p[1]==='K'){cast[col+'K']=0;cast[col+'Q']=0}
+  for(const[[r,c],k]of[[[7,0],'wQ'],[[7,7],'wK'],[[0,0],'bQ'],[[0,7],'bK']])
+    if((m.fr===r&&m.fc===c)||(m.tr===r&&m.tc===c))cast[k]=0;
+  return{b,turn:col==='w'?'b':'w',cast,ep:m.dbl?[(m.fr+m.tr)/2,m.fc]:null,hist:s.hist,over:null,check:false,last:null,cap,sh,fz:decay(fz,b,col),caps,used:s.used,pre:''};
+}
+
+function legal(s,r,c){
+  const col=s.b[r][c][0];
+  return moves(s,r,c).filter(m=>!inCheck(apply(s,m).b,col));
+}
+function anyLegal(s){
+  for(let r=0;r<8;r++)for(let c=0;c<8;c++)
+    if(s.b[r][c]&&s.b[r][c][0]===s.turn&&legal(s,r,c).length)return true;
+  return false;
+}
+
+// ---------- Туман войны ----------
+// Клетки, которые «видит» цвет col: свои фигуры и всё, куда они могут пойти или что бьют. Упавшие клетки видны всем.
+// Только видимость: правила шаха, мата и пата не меняются.
+function visible(b,col){
+  const v=Array.from({length:8},()=>Array(8).fill(false));
+  const mark=(r,c)=>{if(on(r,c))v[r][c]=true};
+  for(let r=0;r<8;r++)for(let c=0;c<8;c++){
+    const p=b[r][c];
+    if(p==='X'){v[r][c]=true;continue}
+    if(!p||p[0]!==col)continue;
+    v[r][c]=true;
+    const t=p[1];
+    if(t==='P'){
+      const d=col==='w'?-1:1,start=col==='w'?6:1;
+      mark(r+d,c-1);mark(r+d,c+1);mark(r+d,c);
+      if(r===start&&on(r+2*d,c)&&!b[r+d][c])mark(r+2*d,c);
+      if(on(r+2*d,c)&&b[r+d][c]==='X')mark(r+2*d,c);
+    }else if(t==='N'){for(const[dr,dc]of N)mark(r+dr,c+dc)}
+    else if(t==='K'){for(const[dr,dc]of D8)mark(r+dr,c+dc)}
+    else for(const[dr,dc]of D8){
+      if(t==='R'&&dr&&dc)continue;
+      if(t==='B'&&!(dr&&dc))continue;
+      let x=r+dr,y=c+dc;
+      while(on(x,y)){v[x][y]=true;if(b[x][y])break;x+=dr;y+=dc}
+    }
+  }
+  return v;
+}
+// ---------- Ничьи ----------
+const posKey=s=>JSON.stringify([s.b,s.turn,s.cast,s.ep,s.sh,s.fz,s.used,s.caps]);
+// Недостаточно материала для мата. Пока у кого-то есть воскрешение и есть кого воскрешать, ничьей нет.
+function noMaterial(s){
+  for(const c of['w','b'])if(!s.used[c].res&&s.caps[c].some(t=>t!=='Q'&&t!=='K'))return false;
+  const minor=[];
+  for(let r=0;r<8;r++)for(let c=0;c<8;c++){
+    const p=s.b[r][c];
+    if(!p||p==='X'||p[1]==='K')continue;
+    if(p[1]==='N'||p[1]==='B')minor.push([p[1],(r+c)%2]);
+    else return false;
+  }
+  if(minor.length<=1)return true;
+  return minor.every(x=>x[0]==='B'&&x[1]===minor[0][1]);
+}
+// ---------- Бот ----------
+const PV={P:100,N:320,B:330,R:500,Q:900,K:0};
+// Быстрая версия legal(): ход делается прямо на доске и откатывается (без копирования состояния)
+function legalFast(s,r,c){
+  const b=s.b,col=b[r][c][0],out=[];
+  for(const m of moves(s,r,c)){
+    const p=b[m.fr][m.fc],v=b[m.tr][m.tc],e=m.ep?b[m.fr][m.tc]:null;
+    const vic=m.ep?e:v,bounce=vic&&s.sh[m.ep?m.fr:m.tr][m.tc];
+    let ok;
+    if(bounce)ok=!inCheck(b,col);               // щит: доска не меняется
+    else{
+      const rf=m.cas==='K'?7:0,rt=m.cas==='K'?5:3,rk=m.cas?b[m.fr][rf]:null;
+      b[m.tr][m.tc]=m.promo?col+'Q':p;b[m.fr][m.fc]=null;
+      if(m.ep)b[m.fr][m.tc]=null;
+      if(m.cas){b[m.fr][rt]=rk;b[m.fr][rf]=null}
+      ok=!inCheck(b,col);
+      if(m.cas){b[m.fr][rf]=rk;b[m.fr][rt]=null}
+      b[m.tr][m.tc]=v;b[m.fr][m.fc]=p;
+      if(m.ep)b[m.fr][m.tc]=e;
+    }
+    if(ok)out.push(m);
+  }
+  return out;
+}
+function allMoves(s){
+  const o=[];
+  for(let r=0;r<8;r++)for(let c=0;c<8;c++)
+    if(s.b[r][c]&&s.b[r][c][0]===s.turn)for(const m of legalFast(s,r,c))o.push(m);
+  return o;
+}
+// Оценка позиции с точки зрения белых: материал + небольшие бонусы за центр и продвижение пешек
+function evalS(s){
+  let v=0;
+  for(let r=0;r<8;r++)for(let c=0;c<8;c++){
+    const p=s.b[r][c];if(!p||p==='X')continue;
+    const t=p[1],cen=3.5-Math.max(Math.abs(r-3.5),Math.abs(c-3.5));
+    let x=PV[t];
+    if(t==='N'||t==='B')x+=cen*10;
+    else if(t==='P')x+=(p[0]==='w'?6-r:r-1)*6+cen*3;
+    else if(t==='Q')x+=cen*3;
+    v+=p[0]==='w'?x:-x;
+  }
+  return v;
+}
+// Ходы со взятиями первыми (дорогая жертва бьётся дешёвой) — так отсечение работает быстрее
+function order(s,ms){
+  return ms.map(m=>{
+    const v=s.b[m.tr][m.tc];
+    return[m,(v&&v!=='X'?PV[v[1]]*10-PV[s.b[m.fr][m.fc][1]]:m.ep?900:0)+(m.promo?800:0)];
+  }).sort((a,b)=>b[1]-a[1]).map(x=>x[0]);
+}
+const sgn=s=>s.turn==='w'?1:-1;
+// Поиск только по взятиям в конце: чтобы бот не «брал» защищённую фигуру без ответа
+function qs(s,a,b,qd){
+  const stand=sgn(s)*evalS(s);
+  if(qd<=0||stand>=b)return stand;
+  if(stand>a)a=stand;
+  const ms=allMoves(s).filter(m=>m.ep||(s.b[m.tr][m.tc]&&!s.sh[m.tr][m.tc]));
+  for(const m of order(s,ms)){
+    const v=-qs(apply(s,m,'Q'),-b,-a,qd-1);
+    if(v>=b)return v;
+    if(v>a)a=v;
+  }
+  return a;
+}
+function nega(s,d,a,b,ply){
+  const ms=allMoves(s);
+  if(!ms.length)return inCheck(s.b,s.turn)?-100000+ply:0;
+  if(d<=0)return qs(s,a,b,4);
+  let best=-1e9;
+  for(const m of order(s,ms)){
+    const v=-nega(apply(s,m,'Q'),d-1,-b,-a,ply+1);
+    if(v>best)best=v;
+    if(best>a)a=best;
+    if(a>=b)break;
+  }
+  return best;
+}
+// Уровни: 1 — лёгкий (глубина 1, шум, иногда случайный ход), 2 — средний, 3 — сильный
+function botPick(s,level){
+  const depth=[0,1,2,3][level],noise=[0,60,15,0][level];
+  const ms=allMoves(s);
+  if(!ms.length)return null;
+  if(level===1&&Math.random()<.15)return ms[Math.floor(Math.random()*ms.length)];
+  let best=null,bv=-1e9;
+  for(const m of order(s,ms)){
+    const lo=noise?-1e9:bv;
+    const v=-nega(apply(s,m,'Q'),depth-1,-1e9,-lo,1)+Math.random()*noise;
+    if(v>bv){bv=v;best=m}
+  }
+  return best;
+}
+// ---------- Интерфейс ----------
+let S=newState(),stack=[],sel=null,pending=null,mode=null,pickRes=false,msgText='',animDrop=null;
+let inMenu=true,abOn=true,started=false;
+const $=id=>document.getElementById(id);
+
+function commit(m,promo){
+  tickClock();if(S.over)return;
+  const t=S.b[m.fr][m.fc][1];
+  const ns=apply(S,m,promo);
+  ns.last=[m.fr,m.fc,m.tr,m.tc];
+  ns.fall=S.fall;ns.every=S.every;ns.ply=S.ply+1;ns.dropped=null;
+  if(ns.fall&&ns.ply%ns.every===0)ns.dropped=drop(ns);
+  animDrop=ns.dropped;
+  ns.check=inCheck(ns.b,ns.turn);
+  if(!anyLegal(ns))ns.over=ns.check?'mate':'stale';
+  // ничьи: счётчик 50 ходов, повторение позиции, недостаток материала
+  ns.hm=(t==='P'||ns.cap)?0:S.hm+1;
+  ns.rep={...S.rep};
+  if(!S.hist.length)ns.rep[posKey(S)]=1;
+  const pk=posKey(ns);ns.rep[pk]=(ns.rep[pk]||0)+1;
+  if(!ns.over){
+    if(ns.rep[pk]>=3){ns.over='draw';ns.why='троекратное повторение позиции'}
+    else if(ns.hm>=100){ns.over='draw';ns.why='50 ходов без взятий и ходов пешками'}
+    else if(noMaterial(ns)){ns.over='draw';ns.why='недостаточно материала'}
+  }
+  let note=m.cas?(m.cas==='K'?'O-O':'O-O-O'):(t==='P'?'':t)+sq(m.fr,m.fc)+(ns.bounce?'x🛡':ns.cap?'x':'-')+sq(m.tr,m.tc)+(m.promo&&!ns.bounce?'='+promo:'');
+  note+=ns.over==='mate'?'#':ns.check?'+':'';
+  if(ns.dropped){const d=sq(ns.dropped[0],ns.dropped[1]);note+=' ⬇'+d;msgText='⬇ Упала клетка '+d}
+  ns.hist=[...S.hist,S.pre+note];
+  stack.push(S);S=ns;sel=null;pending=null;mode=null;
+  if(clk.max&&!clk.on){clk.on=true;clk.last=Date.now()}
+  $('promo').hidden=true;fogHide=true;draw();maybeBot();
+}
+function click(r,c){
+  if(S.over||pending||pickRes||botTurn())return;
+  if(mode){
+    if(targets().some(t=>t[0]===r&&t[1]===c))useAb(mode.k,r,c,mode.type);
+    else{mode=null;draw()}
+    return;
+  }
+  if(sel){
+    const m=sel.mv.find(m=>m.tr===r&&m.tc===c);
+    if(m){
+      if(m.promo&&!S.sh[m.tr][m.tc]){
+        pending=m;$('ptitle').textContent='Превращение в:';
+        $('pbtns').innerHTML=['Q','R','B','N'].map(k=>`<button data-k="${k}"><span class="${S.turn}">${G[k]}</span></button>`).join('');
+        $('promo').hidden=false;return;
+      }
+      return commit(m,'Q');
+    }
+  }
+  const p=S.b[r][c];
+  sel=p&&p[0]===S.turn?{r,c,mv:legal(S,r,c)}:null;
+  if(sel&&S.fz[r][c])msgText=`Фигура заморожена (осталось ходов: ${S.fz[r][c]})`;
+  draw();
+}
+function draw(){
+  const B=$('board');B.innerHTML='';const els=[];
+  const kp=S.check?findK(S.b,S.turn):null,L=S.last,tg=targets(),vis=fogOn()?visible(S.b,fogViewer()):null,fl=flipped(),ad=animDrop;animDrop=null;
+  for(let r=0;r<8;r++)for(let c=0;c<8;c++){
+    const d=document.createElement('div'),hd=vis&&!vis[r][c]&&S.b[r][c]!=='X',p=hd?null:S.b[r][c];
+    let cl='sq '+((r+c)%2?'d':'l');
+    if(L&&!hd&&((L[0]===r&&L[1]===c)||(L[2]===r&&L[3]===c)))cl+=' last';
+    if(sel&&sel.r===r&&sel.c===c)cl+=' sel';
+    const m=sel&&sel.mv.find(m=>m.tr===r&&m.tc===c);
+    if(m)cl+=(p||m.ep)?' cap':' mv';
+    if(kp&&kp[0]===r&&kp[1]===c)cl+=' chk';
+    if(S.fz[r][c]&&!hd)cl+=' frz';
+    if(hd)cl+=' fog';
+    if(p==='X')cl+=' hole';
+    if(ad&&ad[0]===r&&ad[1]===c)cl+=' drop';
+    if(tg.some(t=>t[0]===r&&t[1]===c))cl+=' tgt';
+    d.className=cl;
+    d.innerHTML=(!hd&&(S.sh[r][c]||S.fz[r][c])?`<i class="tag">${S.sh[r][c]?'🛡':''}${S.fz[r][c]?'❄':''}</i>`:'')+(p&&p!=='X'?`<span class="${p[0]}">${G[p[1]]}</span>`:'')+(c===(fl?7:0)?`<i class="rk">${8-r}</i>`:'')+(r===(fl?0:7)?`<i class="fl">${'abcdefgh'[c]}</i>`:'');
+    d.onclick=()=>click(r,c);
+    els.push(d);
+  }
+  if(fl)els.reverse();els.forEach(e=>B.appendChild(e));
+  const w=S.turn==='w';
+  if(S.over==='mate')$('turn').textContent=`Мат! Победили ${w?'чёрные':'белые'}`;
+  else if(S.over==='time')$('turn').textContent=`Время вышло! Победили ${w?'чёрные':'белые'}`;
+  else if(S.over==='draw')$('turn').textContent='Ничья: '+S.why;
+  else if(S.over==='stale')$('turn').textContent='Пат — ничья';
+  else $('turn').innerHTML=`<span class="dot ${S.turn}"></span>Ход ${w?'белых':'чёрных'}`+(S.check?' — <b>шах!</b>':'');
+  $('hist').innerHTML=fogOn()?'<em>История скрыта в тумане. Откроется после конца партии.</em>':S.hist.map((n,i)=>i%2?'':`<div><span>${i/2+1}.</span>${n} ${S.hist[i+1]||''}</div>`).join('');
+  $('hist').scrollTop=$('hist').scrollHeight;drawClocks();drawPass();
+  drawAb();
+  $('msg').textContent=mode?HINT[mode.k]+'. Повторное нажатие на значок отменяет.':msgText||(S.fall&&!S.over?`До падения клетки (ходов): ${S.every-S.ply%S.every}`:'');msgText='';
+}
+$('pbtns').onclick=e=>{
+  const b=e.target.closest('button');if(!b)return;
+  if(pending)commit(pending,b.dataset.k);
+  else if(pickRes){
+    pickRes=false;$('promo').hidden=true;mode={k:'res',type:b.dataset.k};
+    if(!targets().length){mode=null;msgText='Все стартовые клетки заняты, вернуть некуда'}
+    draw();
+  }
+};
+$('promo').onclick=e=>{if(e.target.id==='promo'&&pickRes){pickRes=false;$('promo').hidden=true}};
+// ---------- Шахматные часы ----------
+// Время идёт у того, чей сейчас ход (S.turn). Часы запускаются после первого хода.
+let clk={w:0,b:0,max:0,on:false,last:0};
+function setClock(){const s=+$('optTime').value;clk={w:s*1000,b:s*1000,max:s*1000,on:false,last:0}}
+function fmt(ms){const s=Math.ceil(Math.max(ms,0)/1000);return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0')}
+function tickClock(){
+  const now=Date.now();
+  if(inMenu){clk.last=now;return}
+  if(clk.max&&clk.on&&!S.over){
+    clk[S.turn]-=now-clk.last;
+    if(clk[S.turn]<=0){
+      clk[S.turn]=0;S.over='time';sel=null;mode=null;pending=null;pickRes=false;$('promo').hidden=true;
+      clk.last=now;return draw();
+    }
+  }
+  clk.last=now;drawClocks();
+}
+function drawClocks(){
+  $('clocks').hidden=!clk.max;
+  for(const c of['w','b']){
+    const e=$(c==='w'?'cw':'cb');
+    e.innerHTML=`<span class="dot ${c}"></span>${fmt(clk[c])}`;
+    e.className='clk'+(!S.over&&S.turn===c?' act':'')+(clk.max&&clk[c]<30000?' low':'');
+  }
+}
+setInterval(tickClock,200);
+// ---------- Бот в интерфейсе: играет чёрными после хода белых ----------
+let botLvl=0;
+let botCol='b';
+const botTurn=()=>botLvl>0&&S.turn===botCol&&!S.over;
+const flipped=()=>botLvl>0&&botCol==='w';
+function maybeBot(){
+  if(!botTurn()||inMenu)return;
+  const snap=S;
+  $('msg').textContent='Бот думает…';
+  setTimeout(()=>{
+    if(S!==snap||!botTurn()||inMenu)return;   // ход отменили, начали новую игру или бота выключили
+    const ab=botAbility(),m=botPick(S,botLvl);
+    if(m){msgText=ab;commit(m,'Q')}
+  },350);
+}
+// ---------- Туман войны в интерфейсе ----------
+// В игре вдвоём доску видит тот, чей ход; против бота — всегда белые. После конца партии туман снимается.
+let fog=false,fogHide=false;
+const fogOn=()=>fog&&!S.over;
+const fogViewer=()=>botLvl?(botCol==='b'?'w':'b'):S.turn;
+function drawPass(){
+  const show=fogOn()&&fogHide&&!botLvl;
+  $('pass').hidden=!show;
+  if(show)$('passtxt').textContent=`Передайте устройство ${S.turn==='w'?'белым':'чёрным'}`;
+}
+$('passbtn').onclick=()=>{fogHide=false;drawPass()};
+// ---------- Правила, выбор цвета, способности бота ----------
+document.querySelectorAll('.rules-open').forEach(b=>b.onclick=()=>{$('rules').hidden=false});
+$('rules').onclick=e=>{if(e.target.id==='rules'||e.target.dataset.close)$('rules').hidden=true};
+document.addEventListener('keydown',e=>{if(e.key==='Escape')$('rules').hidden=true});
+// Бот (средний и сильный) использует способности: не больше одной за ход
+function botAbility(){
+  if(botLvl<2||!abOn||Math.random()<.25)return'';
+  const s=S,me=s.turn,opp=me==='w'?'b':'w',u=s.used[me];
+  const use=(k,r,c,type,label)=>{useAb(k,r,c,type);return S!==s?label:''};
+  let best=null,bv=0;
+  if(!u.shield){   // щит: самой ценной своей фигуре под боем
+    for(let r=0;r<8;r++)for(let c=0;c<8;c++){
+      const p=s.b[r][c];
+      if(!p||p==='X'||p[0]!==me||p[1]==='K'||s.sh[r][c])continue;
+      const v=PV[p[1]];
+      if(v>=300&&v>bv&&attacked(s.b,r,c,opp)){bv=v;best=[r,c]}
+    }
+    if(best)return use('shield',best[0],best[1],null,'Бот поставил щит 🛡');
+  }
+  if(!u.freeze){   // заморозка: вражеской фигуре, которая угрожает нашей ценной
+    best=null;bv=0;
+    for(let r=0;r<8;r++)for(let c=0;c<8;c++){
+      const p=s.b[r][c];
+      if(!p||p==='X'||p[0]!==opp||p[1]==='K'||s.fz[r][c])continue;
+      let thr=0;
+      for(const m of moves(s,r,c)){const v=s.b[m.tr][m.tc];if(v&&v!=='X'&&v[0]===me&&!s.sh[m.tr][m.tc])thr=Math.max(thr,PV[v[1]])}
+      if(thr>=300&&thr>bv){bv=thr;best=[r,c]}
+    }
+    if(best)return use('freeze',best[0],best[1],null,'Бот заморозил фигуру ❄');
+  }
+  if(!u.res){      // воскрешение: самая ценная съеденная фигура
+    const ts=resTypes().filter(t=>PV[t]>=300).sort((a,b)=>PV[b]-PV[a]);
+    if(ts.length){
+      mode={k:'res',type:ts[0]};const tg=targets();mode=null;
+      if(tg.length){const[r,c]=tg[Math.floor(Math.random()*tg.length)];return use('res',r,c,ts[0],'Бот вернул фигуру ✚')}
+    }
+  }
+  return'';
+}
+const resTypes=()=>[...new Set(S.caps[S.turn].filter(t=>t!=='Q'&&t!=='K'))];
+// Клетки, доступные как цель выбранной способности
+function targets(){
+  if(!mode)return[];
+  const o=[],me=S.turn,en=me==='w'?'b':'w',vf=fogOn()?visible(S.b,me):null;
+  if(mode.k==='res'){
+    const row=me==='w'?7:0,pr=me==='w'?6:1,t=mode.type;
+    if(t==='P')for(let c=0;c<8;c++)o.push([pr,c]);
+    else for(const c of{R:[0,7],N:[1,6],B:[2,5]}[t])o.push([row,c]);
+    return o.filter(([r,c])=>!S.b[r][c]);
+  }
+  for(let r=0;r<8;r++)for(let c=0;c<8;c++){
+    const p=S.b[r][c];if(!p||p[1]==='K')continue;
+    if(mode.k==='freeze'&&p[0]===en&&!S.fz[r][c]&&(!vf||vf[r][c]))o.push([r,c]);
+    if(mode.k==='shield'&&p[0]===me&&!S.sh[r][c])o.push([r,c]);
+  }
+  return o;
+}
+function abClick(k){
+  sel=null;
+  if(mode&&mode.k===k){mode=null;return draw()}
+  mode=null;
+  if(k==='res'){
+    $('ptitle').textContent='Кого вернуть:';
+    $('pbtns').innerHTML=resTypes().map(t=>`<button data-k="${t}"><span class="${S.turn}">${G[t]}</span></button>`).join('');
+    pickRes=true;$('promo').hidden=false;return;
+  }
+  mode={k};
+  if(!targets().length){mode=null;msgText='Нет подходящих целей'}
+  draw();
+}
+// Способность — бесплатное действие: после неё игрок всё равно делает ход
+function useAb(k,r,c,type){
+  const ns={...S,b:S.b.map(x=>x.slice()),sh:S.sh.map(x=>x.slice()),fz:S.fz.map(x=>x.slice()),caps:{w:[...S.caps.w],b:[...S.caps.b]},used:{w:{...S.used.w},b:{...S.used.b}}};
+  const me=S.turn;ns.used[me][k]=1;
+  if(k==='freeze'){ns.fz[r][c]=2;ns.pre+=`❄${sq(r,c)} `}
+  if(k==='shield'){ns.sh[r][c]=true;ns.pre+=`🛡${sq(r,c)} `}
+  if(k==='res'){
+    ns.b[r][c]=me+type;ns.hm=0;ns.caps[me].splice(ns.caps[me].indexOf(type),1);ns.pre+=`✚${type}${sq(r,c)} `;
+    ns.check=inCheck(ns.b,me);
+    if(!anyLegal(ns)){mode=null;msgText='Так нельзя: после этого не останется ходов';return draw()}
+  }
+  stack.push(S);S=ns;mode=null;draw();
+}
+function drawAb(){
+  const me=S.turn,box=$('abs');
+  $('abar').hidden=!abOn;box.innerHTML='';
+  if(!abOn)return;
+  $('abwho').className='dot '+me;
+  [['freeze','❄','Заморозка'],['shield','🛡','Щит'],['res','✚','Воскрешение']].forEach(([k,ic,nm])=>{
+    const b=document.createElement('button');
+    b.textContent=ic;b.title=nm;b.setAttribute('aria-label',nm);
+    b.disabled=!!(S.over||botTurn()||pending||pickRes||S.used[me][k]||(k==='res'&&!resTypes().length));
+    if(mode&&mode.k===k)b.className='on';
+    b.onclick=()=>abClick(k);box.appendChild(b);
+  });
+}
+$('undo').onclick=()=>{if(stack.length&&S.over!=='time'){S=stack.pop();while(botLvl&&S.turn===botCol&&stack.length)S=stack.pop();sel=null;pending=null;mode=null;pickRes=false;$('promo').hidden=true;fogHide=true;draw()}};
+// ---------- Начальная страница и запуск партии ----------
+const HINT={freeze:'❄ Заморозка: выберите фигуру соперника (кроме короля)',shield:'🛡 Щит: выберите свою фигуру (кроме короля)',res:'✚ Воскрешение: выберите свободную стартовую клетку'};
+function showGame(){inMenu=false;$('menu').hidden=true;$('game').hidden=false}
+function showMenu(){inMenu=true;$('game').hidden=true;$('menu').hidden=false;$('contBtn').hidden=!(started&&!S.over)}
+function startGame(){
+  botLvl=+$('optBot').value;botCol=$('optSide').value==='w'?'b':'w';
+  fog=$('optFog').checked;abOn=$('optAb').checked;
+  S=newState();S.fall=$('optFall').checked;S.every=+$('optRate').value;
+  stack=[];sel=null;pending=null;mode=null;pickRes=false;msgText='';animDrop=null;fogHide=false;
+  $('promo').hidden=true;setClock();started=true;
+  showGame();draw();maybeBot();
+}
+$('startBtn').onclick=startGame;
+$('restart').onclick=startGame;
+$('menuBtn').onclick=showMenu;
+$('contBtn').onclick=()=>{showGame();fogHide=true;draw();maybeBot()};
+$('optBot').onchange=()=>{$('optSide').disabled=$('optBot').value==='0'};
+$('optBot').onchange();
+document.querySelectorAll('.mode input').forEach(i=>{
+  const sync=()=>{const m=i.closest('.mode');m.classList.toggle('on',i.checked);const more=m.querySelector('.more');if(more)more.hidden=!i.checked};
+  i.onchange=sync;sync();
+});
+draw();
+</script>
+</body>
+</html>
