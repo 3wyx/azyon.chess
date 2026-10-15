@@ -128,7 +128,7 @@ h1.big{font-size:2.2rem;margin-top:10px}
   <div class="mcard">
     <h2>Режимы</h2>
     <div class="modes">
-      <div class="mode"><label class="tog"><input type="checkbox" id="optAb" checked><span class="ico">❄🛡</span><span><b>Способности</b><small>Заморозка, щит и воскрешение: по одной за партию</small></span><span class="sw"></span></label></div>
+      <div class="mode"><label class="tog"><input type="checkbox" id="optAb"><span class="ico">❄🛡</span><span><b>Способности</b><small>Заморозка, щит и воскрешение: по одной за партию</small></span><span class="sw"></span></label></div>
       <div class="mode"><label class="tog"><input type="checkbox" id="optFall"><span class="ico">🕳️</span><span><b>Падающие клетки</b><small>Пустые клетки в центре падают и становятся стенами</small></span><span class="sw"></span></label>
         <div class="more" hidden><label class="opt">Как часто падает клетка <select id="optRate"><option value="6">Часто (раз в 6 ходов)</option><option value="10" selected>Средне (раз в 10)</option><option value="16">Редко (раз в 16)</option></select></label></div></div>
       <div class="mode"><label class="tog"><input type="checkbox" id="optFog"><span class="ico">🌫️</span><span><b>Туман войны</b><small>Видно только то, что видят ваши фигуры</small></span><span class="sw"></span></label></div>
@@ -441,7 +441,7 @@ function botPick(s,level){
 }
 // ---------- Интерфейс ----------
 let S=newState(),stack=[],sel=null,pending=null,mode=null,pickRes=false,msgText='',animDrop=null;
-let inMenu=true,abOn=true,started=false;
+let inMenu=true,abOn=false,started=false;
 const $=id=>document.getElementById(id);
 
 function commit(m,promo){
